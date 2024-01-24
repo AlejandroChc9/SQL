@@ -1,19 +1,4 @@
--- EXAMEN 2
--- Alejandro Chávez Caycho
-
-/*1.- (7 puntos) Crear un Store procedure que permita insertar un Documento de Venta deberá validar lo siguiente:
-1.1 Que el documento de venta no exista (validar según el primary key del documento venta)
-1.2 Que el Código de Tipo de Documento Venta exista en la tabla TipoDocumentoVenta
-1.3 Que el Código de Moneda a insertar exista en la tabla Moneda
-1.4 Que el código de cliente a Insertar exista en la tabla Cliente
-1.5 Que el subtotal sea un importe mayor a cero
-1.6 Considerar los parámetros necesarios para insertar la Factura, NO considerar como parámetros :
- - RUC : tomará el valor del código del Cliente (codigocliente sí es parametro)
- -NombreCliente : será el nombre del Cliente de la tabla Cliente, buscarlo a partir del códigocliente que es un parámetro del store procedure.
- -DireccionCliente: será la Direccion del Cliente de la tabla Cliente , buscarlo a partir del codigocliente que es un parámetro del store procedure.
- -TipoCambio : colocar un valor fijo de cero (0)
- -IGV : es un campo calculado a partir del parámetro subtotal es: 18 % del subtotal
- -Total: es un campo calcualado es : la suma del subtotal + igv. */
+--Procedimiento InsertarDocumentoVenta:
 
 CREATE PROCEDURE InsertarDocumentoVenta
     @CodigoTipoDocumento CHAR(2),
@@ -33,24 +18,24 @@ BEGIN
         RETURN;
     END;
 
-    -- 1.2 Validar que el Código de Tipo de Documento Venta exista
+    -- 1.2 Validar que el CÃ³digo de Tipo de Documento Venta exista
     IF NOT EXISTS (SELECT 1 FROM TipoDocumento WHERE CodigoTipoDocumento = @CodigoTipoDocumento)
     BEGIN
-        THROW 50000, 'El código de tipo de documento venta no existe.', 1;
+        THROW 50000, 'El cÃ³digo de tipo de documento venta no existe.', 1;
         RETURN;
     END;
 
-    -- 1.3 Validar que el Código de Moneda exista
+    -- 1.3 Validar que el CÃ³digo de Moneda exista
     IF NOT EXISTS (SELECT 1 FROM Moneda WHERE CodigoMoneda = @CodigoMoneda)
     BEGIN
-        THROW 50000, 'El código de moneda no existe.', 1;
+        THROW 50000, 'El cÃ³digo de moneda no existe.', 1;
         RETURN;
     END;
 
-    -- 1.4 Validar que el Código de Cliente exista
+    -- 1.4 Validar que el CÃ³digo de Cliente exista
     IF NOT EXISTS (SELECT 1 FROM Cliente WHERE CodigoCliente = @CodigoCliente)
     BEGIN
-        THROW 50000, 'El código de cliente no existe.', 1;
+        THROW 50000, 'El cÃ³digo de cliente no existe.', 1;
         RETURN;
     END;
 
@@ -129,14 +114,7 @@ EXEC InsertarDocumentoVenta
 	 CodigoCliente = '20522017133' AND 
 	 Subtotal = 100.00
 
-/*2.- (6 puntos) Crear un store procedure que permita modificar un servicio (Un registro)
-de la Tabla DocumentoVentaDetalle los campos a modificar son :subtotal , igv, total
-2.1 Parametros : CodigoTipoDocumento, serie, numeroDocumento, CodigoServicio, subtotal(importe nuevo que tomará el subtotal),
-igv (importe nuevo que tomara el igv ), total (importe nuevo que tomará el total)
-2.2 A partir de estos cuatro parametros CodigoTipoDocumento, serie, numeroDocumento, CodigoServicio,se podrá realizar la modificación del subtotal, igv y total.
-2.3- A partir de la modificación de este servicio actualizar el monto subtotal, igv, total de la tabla DocumentoVenta.
-Nota: Como se ha visto en clase el Documento de Venta Detalle contiene todos los servicios cuya suma de subtotales da como 
-resultado el valor subtotal de la Tabla Documento de Venta, esto aplica también para el igv y el total.*/
+--Procedimiento ModificarServicioDocumentoVenta:
 
 CREATE PROCEDURE ModificarServicioDocumentoVenta
     @CodigoTipoDocumento CHAR(2),
@@ -189,13 +167,13 @@ BEGIN
         AND dv.Serie = @Serie
         AND dv.NumeroDocumento = @NumeroDocumento;
 
-    -- (Opcional) Puedes devolver algún mensaje o resultado
+    -- (Opcional) Puedes devolver algÃºn mensaje o resultado
     SELECT 'Servicio modificado exitosamente.' AS Resultado;
 END;
 
 
 --Ejemplo:
--- Definición de valores de prueba
+-- DefiniciÃ³n de valores de prueba
 DECLARE @CodigoTipoDocumento CHAR(2) = '01';
 DECLARE @Serie VARCHAR(4) = '001';
 DECLARE @NumeroDocumento VARCHAR(20) = '001-131959';
@@ -204,6 +182,7 @@ DECLARE @NuevoSubtotal NUMERIC(9, 2) = 200.00;
 DECLARE @NuevoIGV NUMERIC(9, 2) = 36.00;
 DECLARE @NuevoTotal NUMERIC(9, 2) = 236.00;
 
+-- Pruebas
 -- Llamada al procedimiento almacenado
 EXEC ModificarServicioDocumentoVenta
     @CodigoTipoDocumento,
@@ -221,26 +200,8 @@ WHERE CodigoTipoDocumento = '01'AND Serie = '001' AND NumeroDocumento = '001-131
 select*from DocumentoVenta
 WHERE CodigoTipoDocumento = '01'AND Serie = '001' AND NumeroDocumento = '001-131959'
 
-/*3.- (7 puntos) Crear un Store Procedure que tome en consideración lo siguiente:
-3.1.-El store procedure debe insertar 1 registro en la tabla Documento de Venta, considerar los parámetros necesarios.
-3.2.-Al insertar un Documento de Venta no es necesario insertar datos en la Tabla DocumentoVentaDetalle.
-3.3.-Deberá crear la siguiente tabla LineaCreditoCliente con los siguientes campos:
--CodigoCliente : Es el codigoCliente al cual se le dará una línea de Credito
--ImporteLineaCredito: Es el importe de la línea de crédito que se concede al cliente.
--CodigoMoneda: Es el Codigo de Moneda PEN o USD de la Línea Crédito
-3.4.-Insertar algunos datos de ejemplo en la Tabla LineaCreditoCliente para que pueda validar su Store Procedure (Como CodigoCliente 
-considerar a los que después se les insertará en un documento de venta. Para sus nuevos Documentos de Venta, pueden copiar datos de la 
-tabla Documento Venta de Documentos de Venta existentes, pero deberán cambiarle el número de documento para evitar la restricción de primary key)
-3.5.- La regla de negocio que tiene el Store Procedure es que cada vez que se inserte una venta (Tabla DocumentoVenta), el Store Procedure se
-encargará de descontar el valor subtotal al importeLineaCredito de la Tabla LineaCredito, tomando en cuenta la moneda.
-Ejemplo el cliente X tiene un Importe de línea de Crédito de 10 000 Soles, se le emite al Cliente una factura por un monto de 1000 Soles.
-El Nuevo importe de Línea de Crédito será 9000 Soles
-3.6.-La  Linea Credito de crédito del Cliente se reducirá siempre y cuando coincidan las monedas de Factura y Linea de Credito.
-Ejemplo: Factura en Soles , Linea de Credito en Soles.
-3.7 En caso de no encontrar Linea de Credito para el cliente segun la moneda de la Factura,
-el store proceso no realizará ningúna actualización a la Linea de Credito.*/
-
 -- Crear la tabla LineaCreditoCliente
+
 CREATE TABLE LineaCreditoCliente (
     CodigoCliente VARCHAR(20) PRIMARY KEY,
     ImporteLineaCredito NUMERIC(9, 2),
@@ -312,7 +273,7 @@ BEGIN
         AND ImporteLineaCredito >= @Subtotal;
 END;
 
-
+--Pruebas:
 -- Llamada al procedimiento almacenado
 EXEC InsertarDocumentoVentaYActualizarLineaCredito
     @CodigoTipoDocumento = '01',
